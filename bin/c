@@ -1,0 +1,77 @@
+#!/bin/bash
+  
+DOCKER_FILE=src/main/docker/Dockerfile
+BUILD_DIR=build
+TAG_ORG=shlibnet
+TAG_ID=dynip-client
+TAG_VERSION=latest
+TAG_PREFIX="$TAG_ORG/$TAG_ID"
+TAG="$TAG_PREFIX:$TAG_VERSION"
+DYNIP_DOCKER_GITUSER=ccrepo
+
+for i in ` (docker ps 2>&1) | grep -v 'CONTAINER ID' | grep "${TAG_PREFIX}" | cut -d' ' -f1`
+do
+  echo "stopping container $i"
+
+  docker stop "$i" 2>/dev/null
+
+  sleep 5
+done
+
+for i in ` (docker ps --all 2>&1) | grep -v 'CONTAINER ID' | grep "${TAG_PREFIX}" | cut -d' ' -f1 `
+do
+  echo "removing container $i"
+
+  docker rm "$i" 2>/dev/null
+done
+
+for i in ` (docker images -a 2>&1) | grep -v 'REPOSITORY' | egrep "${TAG_PREFIX}|ubuntu(.*)22.04" | awk '{ print $3 }' `
+do
+  echo "removing image $i"
+
+  docker rmi -f "$i" 2>/dev/null
+done
+
+docker images -a
+
+cd ..
+
+pwd
+
+if [[ ! -f "$DOCKER_FILE" ]]
+then
+
+  echo "docker file '$DOCKER_FILE' missing"
+
+  return 1
+fi
+
+echo dockerfile "$DOCKER_FILE"
+
+rm -fr "$BUILD_DIR" 2>/dev/null
+
+if [[ -d "$BUILD_DIR"  ]]
+then 
+
+  echo "dir '$BUILD_DIR' could not be deleted"
+
+  return 1
+fi
+
+mkdir -p "$BUILD_DIR"
+
+if [[ ! -d "$BUILD_DIR" ]]
+then 
+
+  echo "dir '$BUILD_DIR' could not be created"
+
+  return 1
+fi
+
+docker build --rm -f "$DOCKER_FILE"  --build-arg "DYNIP_DOCKER_GITUSER=$DYNIP_DOCKER_GITUSER" -t "$TAG" "$BUILD_DIR"
+       
+docker images
+
+docker run --network="host" -d -p "8181:8080" "$TAG_PREFIX"
+
+docker ps --all
