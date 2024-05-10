@@ -12,23 +12,19 @@ DYNIP_DOCKER_GITUSER=ccrepo
 for i in ` (docker ps 2>&1) | grep -v 'CONTAINER ID' | grep "${TAG_PREFIX}" | cut -d' ' -f1`
 do
   echo "stopping container $i"
-
   docker stop "$i" 2>/dev/null
-
   sleep 5
 done
 
 for i in ` (docker ps --all 2>&1) | grep -v 'CONTAINER ID' | grep "${TAG_PREFIX}" | cut -d' ' -f1 `
 do
   echo "removing container $i"
-
   docker rm "$i" 2>/dev/null
 done
 
 for i in ` (docker images -a 2>&1) | grep -v 'REPOSITORY' | egrep "${TAG_PREFIX}|ubuntu(.*)22.04" | awk '{ print $3 }' `
 do
   echo "removing image $i"
-
   docker rmi -f "$i" 2>/dev/null
 done
 
@@ -40,10 +36,8 @@ pwd
 
 if [[ ! -f "$DOCKER_FILE" ]]
 then
-
   echo "docker file '$DOCKER_FILE' missing"
-
-  return 1
+  exit 1
 fi
 
 echo dockerfile "$DOCKER_FILE"
@@ -52,23 +46,19 @@ rm -fr "$BUILD_DIR" 2>/dev/null
 
 if [[ -d "$BUILD_DIR"  ]]
 then 
-
   echo "dir '$BUILD_DIR' could not be deleted"
-
-  return 1
+  exit 1
 fi
 
 mkdir -p "$BUILD_DIR"
 
 if [[ ! -d "$BUILD_DIR" ]]
 then 
-
   echo "dir '$BUILD_DIR' could not be created"
-
-  return 1
+  exit 1
 fi
 
-docker build --rm -f "$DOCKER_FILE"  --build-arg "DYNIP_DOCKER_GITUSER=$DYNIP_DOCKER_GITUSER" -t "$TAG" "$BUILD_DIR"
+docker build --no-cache --rm -f "$DOCKER_FILE"  --build-arg "DYNIP_DOCKER_GITUSER=$DYNIP_DOCKER_GITUSER" -t "$TAG" "$BUILD_DIR"
        
 docker images
 
